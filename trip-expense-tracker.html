@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trip Expense Tracker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: auto;
+        }
+
+        .card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            margin-top: 0;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background: #138808;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table th,
+        table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+
+        table th {
+            background: #FF9933;
+            color: #fff;
+        }
+
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .summary-box {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .positive {
+            color: green;
+            font-weight: bold;
+        }
+
+        .negative {
+            color: red;
+            font-weight: bold;
+        }
+
+        .delete-btn {
+            background: red;
+            padding: 6px 14px;
+        }
+
+        ul {
+            padding-left: 20px;
+        }
+
+        /* Toast */
+        #toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            display: none;
+            z-index: 999;
+            color: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        #toast.success {
+            background: #138808;
+        }
+
+        #toast.error {
+            background: #cc0000;
+        }
+
+        #toast.info {
+            background: #555;
+        }
+
+        /* Badge */
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .badge.active {
+            background: #138808;
+        }
+
+        .badge.saving {
+            background: #FF9933;
+        }
+
+        .badge.error {
+            background: #cc0000;
+        }
+
+        /* Members */
+        .members-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .member-chip {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #fff3e0;
+            border: 1px solid #FF9933;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+
+        .member-chip .remove {
+            background: none;
+            color: red;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .add-member-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .add-member-row input {
+            flex: 1;
+        }
+
+        .add-member-row button {
+            white-space: nowrap;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+
+        <!-- Members Card -->
+        <div class="card">
+            <h2>👥 Trip Members</h2>
+            <div class="members-list" id="membersList"></div>
+            <div class="add-member-row">
+                <input type="text" id="newMemberName" placeholder="Enter member name">
+                <button onclick="addMember()">➕ Add Member</button>
+            </div>
+        </div>
+
+        <!-- Add Expense -->
+        <div class="card">
+            <h2>Add Expense</h2>
+            <div class="grid">
+                <input type="date" id="date">
+                <input type="number" id="amount" placeholder="Amount">
+                <input type="text" id="description" placeholder="Description">
+                <select id="paidBy"></select>
+                <select id="method">
+                    <option>Cash</option>
+                    <option>Card</option>
+                    <option>PhonePe</option>
+                    <option>Paytm</option>
+                    <option>Google Pay</option>
+                </select>
+            </div>
+            <br>
+            <button onclick="addExpense()">➕ Add Expense</button>
+        </div>
+
+        <!-- Expense List -->
+        <div class="card">
+            <h2>Expense List</h2>
+            <div id="loadingMsg" style="color:gray;font-size:13px;">⏳ Loading...</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Amount</th>
+                        <th>Description</th>
+                        <th>Paid By</th>
+                        <th>Method</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="expenseTable"></tbody>
+            </table>
+        </div>
+
+        <!-- Summary -->
+        <div class="summary">
+            <div class="summary-box">
+                <h3>Total Expense</h3>
+                <h2 id="totalExpense">₹0</h2>
+            </div>
+            <div class="summary-box">
+                <h3>Expense Per Head</h3>
+                <h2 id="perHead">₹0</h2>
+            </div>
+        </div>
+
+        <!-- Person Wise -->
+        <div class="card">
+            <h2>Person Wise Summary</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Person</th>
+                        <th>Paid</th>
+                        <th>Share</th>
+                        <th>Balance</th>
+                    </tr>
+                </thead>
+                <tbody id="summaryTable"></tbody>
+            </table>
+        </div>
+
+        <!-- Settlement -->
+        <div class="card">
+            <h2>Settlement</h2>
+            <ul id="settlement"></ul>
+        </div>
+
+    </div>
+
+    <div id="toast"></div>
+
+    <script>
+        const SHEET_URL = "https://script.google.com/macros/s/AKfycbwW-IABvcRZvW0fk5Bkx1Li4YRH6Vbz-lZoSoCbfKyMyWPGNMiUUgo0NI0lstE9YiIf_w/exec";
+
+        let expenses = [];
+        let members = []; // { name, rowIndex }
+
+        // ── Toast ───────────────────────────────────────────
+        function showToast(msg, type = "info", duration = 3000) {
+            const t = document.getElementById("toast");
+            t.textContent = msg;
+            t.className = type;
+            t.style.display = "block";
+            setTimeout(() => t.style.display = "none", duration);
+        }
+
+        // ── Load everything from Sheet ───────────────────────
+        function loadFromSheet() {
+            document.getElementById("loadingMsg").style.display = "block";
+            fetch(SHEET_URL, { redirect: "follow" })
+                .then(r => r.text())
+                .then(text => {
+                    const data = JSON.parse(text);
+                    members = data.members || [];
+                    expenses = (data.expenses || []).map(row => ({
+                        rowIndex: row.rowIndex,
+                        date: String(row.date || "").split("T")[0].split("-").reverse().join("-"),
+                        amount: parseFloat(row.amount) || 0,
+                        description: String(row.description || ""),
+                        paidBy: String(row.paidBy || ""),
+                        method: String(row.method || ""),
+                        status: "active"
+                    }));
+                    document.getElementById("loadingMsg").style.display = "none";
+                    renderMembers();
+                    render();
+                    showToast("✅ Loaded " + expenses.length + " expense(s)", "success");
+                })
+                .catch(err => {
+                    document.getElementById("loadingMsg").textContent = "❌ Failed to load.";
+                    showToast("❌ " + err.message, "error", 6000);
+                });
+        }
+
+        // ── Render Members ───────────────────────────────────
+        function renderMembers() {
+            const list = document.getElementById("membersList");
+            const paidBy = document.getElementById("paidBy");
+            list.innerHTML = "";
+            paidBy.innerHTML = "";
+
+            members.forEach((m, i) => {
+                // Chip
+                list.innerHTML += `
+        <div class="member-chip">
+          👤 ${m.name}
+          <button class="remove" onclick="deleteMember(${i})" title="Remove">✕</button>
+        </div>`;
+                // Dropdown option
+                paidBy.innerHTML += `<option value="${m.name}">${m.name}</option>`;
+            });
+
+            if (members.length === 0) {
+                list.innerHTML = "<p style='color:gray'>No members yet. Add one above.</p>";
+            }
+        }
+
+        // ── Add Member ───────────────────────────────────────
+        function addMember() {
+            const input = document.getElementById("newMemberName");
+            const name = input.value.trim();
+            if (!name) { alert("Enter a name"); return; }
+            if (members.find(m => m.name.toLowerCase() === name.toLowerCase())) {
+                alert("Member already exists"); return;
+            }
+
+            showToast("💾 Adding member...", "info");
+
+            fetch(SHEET_URL, {
+                method: "POST",
+                body: JSON.stringify({ action: "addMember", name: name })
+            })
+                .then(r => r.text())
+                .then(text => {
+                    const res = JSON.parse(text);
+                    if (res.status === "success") {
+                        members.push({ name: name, rowIndex: res.rowIndex });
+                        input.value = "";
+                        renderMembers();
+                        showToast("✅ " + name + " added!", "success");
+                    }
+                })
+                .catch(() => showToast("❌ Failed to add member", "error"));
+        }
+
+        // ── Delete Member ─────────────────────────────────────
+        function deleteMember(index) {
+            const m = members[index];
+            if (!confirm("Remove " + m.name + " from the trip?")) return;
+
+            fetch(SHEET_URL, {
+                method: "POST",
+                body: JSON.stringify({ action: "deleteMember", rowIndex: m.rowIndex })
+            })
+                .then(r => r.text())
+                .then(text => {
+                    const res = JSON.parse(text);
+                    if (res.status === "deleted") {
+                        members.splice(index, 1);
+                        renderMembers();
+                        render(); // recalculate without this member
+                        showToast("🗑️ " + m.name + " removed!", "success");
+                    }
+                })
+                .catch(() => showToast("❌ Failed to remove member", "error"));
+        }
+
+        // ── Add Expense ──────────────────────────────────────
+        function addExpense() {
+            const amount = parseFloat(document.getElementById("amount").value);
+            if (!amount) { alert("Enter amount"); return; }
+            if (members.length === 0) { alert("Add at least one member first"); return; }
+
+            const expense = {
+                date: document.getElementById("date").value,
+                amount: amount,
+                description: document.getElementById("description").value,
+                paidBy: document.getElementById("paidBy").value,
+                method: document.getElementById("method").value,
+                status: "saving"
+            };
+
+            expenses.push(expense);
+            render();
+            showToast("💾 Saving...", "info");
+
+            fetch(SHEET_URL, { method: "POST", body: JSON.stringify(expense) })
+                .then(r => r.text())
+                .then(text => {
+                    const res = JSON.parse(text);
+                    if (res.status === "success") {
+                        const last = expenses[expenses.length - 1];
+                        last.status = "active";
+                        last.rowIndex = res.rowIndex;
+                        // Format date for display
+                        last.date = last.date.split("-").reverse().join("-");
+                        render();
+                        showToast("✅ Expense saved!", "success");
+                        document.getElementById("amount").value = "";
+                        document.getElementById("description").value = "";
+                        document.getElementById("paidBy").selectedIndex = 0;
+                        document.getElementById("method").selectedIndex = 0;
+                        document.getElementById("amount").focus();
+                    }
+                })
+                .catch(() => {
+                    expenses[expenses.length - 1].status = "error";
+                    render();
+                    showToast("❌ Save failed!", "error", 5000);
+                });
+        }
+
+        // ── Delete Expense ───────────────────────────────────
+        function deleteExpense(index) {
+            if (!confirm("Delete this expense?")) return;
+            const expense = expenses[index];
+            if (!expense.rowIndex) { showToast("⚠️ Not synced yet", "error"); return; }
+
+            fetch(SHEET_URL, {
+                method: "POST",
+                body: JSON.stringify({ action: "delete", rowIndex: expense.rowIndex })
+            })
+                .then(r => r.text())
+                .then(text => {
+                    const res = JSON.parse(text);
+                    if (res.status === "deleted") {
+                        expenses.splice(index, 1);
+                        render();
+                        showToast("🗑️ Expense deleted!", "success");
+                    }
+                })
+                .catch(() => showToast("❌ Delete failed!", "error"));
+        }
+
+        // ── Render Expenses ──────────────────────────────────
+        function render() {
+            const table = document.getElementById("expenseTable");
+            table.innerHTML = "";
+            expenses.forEach((e, i) => {
+                const badgeLabel = e.status === "saving" ? "⏳ Saving" : e.status === "error" ? "❌ Error" : "✅ Saved";
+                table.innerHTML += `
+        <tr>
+          <td>${e.date}</td>
+          <td>₹${e.amount}</td>
+          <td>${e.description}</td>
+          <td>${e.paidBy}</td>
+          <td>${e.method}</td>
+          <td><span class="badge ${e.status}">${badgeLabel}</span></td>
+          <td><button class="delete-btn" onclick="deleteExpense(${i})" ${e.status !== "active" ? "disabled" : ""}>🗑️ Delete</button></td>
+        </tr>`;
+            });
+            calculate();
+        }
+
+        // ── Calculate ────────────────────────────────────────
+        function calculate() {
+            const active = expenses.filter(e => e.status === "active");
+            const total = active.reduce((s, e) => s + e.amount, 0);
+            const perHead = members.length ? total / members.length : 0;
+
+            document.getElementById("totalExpense").innerText = "₹" + total.toFixed(2);
+            document.getElementById("perHead").innerText = "₹" + perHead.toFixed(2);
+
+            const summaryBody = document.getElementById("summaryTable");
+            summaryBody.innerHTML = "";
+            const balances = {};
+
+            members.forEach(m => {
+                const paid = active.filter(e => e.paidBy === m.name).reduce((s, e) => s + e.amount, 0);
+                const balance = paid - perHead;
+                balances[m.name] = balance;
+                summaryBody.innerHTML += `
+        <tr>
+          <td>${m.name}</td>
+          <td>₹${paid.toFixed(2)}</td>
+          <td>₹${perHead.toFixed(2)}</td>
+          <td class="${balance >= 0 ? "positive" : "negative"}">₹${balance.toFixed(2)}</td>
+        </tr>`;
+            });
+
+            generateSettlement(balances);
+        }
+
+        // ── Settlement ───────────────────────────────────────
+        function generateSettlement(balances) {
+            const settlement = document.getElementById("settlement");
+            settlement.innerHTML = "";
+            const creditors = [], debtors = [];
+
+            for (const person in balances) {
+                if (balances[person] > 0.01) creditors.push({ person, amount: balances[person] });
+                if (balances[person] < -0.01) debtors.push({ person, amount: -balances[person] });
+            }
+
+            let i = 0, j = 0;
+            while (i < debtors.length && j < creditors.length) {
+                const pay = Math.min(debtors[i].amount, creditors[j].amount);
+                settlement.innerHTML += `<li><b>${debtors[i].person}</b> pays <b>${creditors[j].person}</b> ₹${pay.toFixed(2)}</li>`;
+                debtors[i].amount -= pay;
+                creditors[j].amount -= pay;
+                if (debtors[i].amount < 0.01) i++;
+                if (creditors[j].amount < 0.01) j++;
+            }
+
+            if (!settlement.innerHTML) settlement.innerHTML = "<li>✅ All settled up!</li>";
+        }
+
+        loadFromSheet();
+    </script>
+</body>
+
+</html>
